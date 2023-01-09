@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">Sound Mixer</string>
+    <string name="add_sound">Add sound</string>
+    <string name="play">Play</string>
+    <string name="pause">Pause</string>
+    <string name="stop">Stop</string>
+</resources>
