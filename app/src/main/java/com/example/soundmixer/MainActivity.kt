@@ -38,6 +38,8 @@ class MainActivity : AppCompatActivity() {
         var mediaVolume = 1.0F
         var maxVolume = 1.0F
         var isStopping = false
+        var volumeStop = 0.0F
+        var timeStop = 0.0F
         var beginFadeDuration = 0
         var endFadeDuration = 0
         var mediaPlayer = MediaPlayer()
@@ -61,9 +63,8 @@ class MainActivity : AppCompatActivity() {
             val START_MEDIA = 1
             val PAUSE_MEDIA = 2
             val STOP_MEDIA = 3
-            val UPDATE_VOLUME = 4
-            val UPDATE_VOLUME_UNTIL_STOP = 5
             val DELETE_MEDIA = 6
+            val NEW_UPDATE_VOLUME = 7
         }
 
         var contentResolver: ContentResolver? = null
@@ -97,17 +98,10 @@ class MainActivity : AppCompatActivity() {
                                     state.mediaPlayerList[message.arg1]?.mediaPlayer?.start()
                                     state.mediaPlayerList[message.arg1]?.isStopping = false
 
-                                    var newMessage = Message()
+                                    val newMessage = Message()
                                     newMessage.arg1 = message.arg1
-                                    newMessage.arg2 = MainActivity.LooperThread.UPDATE_VOLUME
+                                    newMessage.arg2 = NEW_UPDATE_VOLUME
                                     handler?.sendMessageDelayed(newMessage, 100)
-
-                                    newMessage = Message()
-                                    newMessage.arg1 = message.arg1
-                                    newMessage.arg2 = MainActivity.LooperThread.UPDATE_VOLUME
-                                    state.mediaPlayerList[message.arg1]?.mediaPlayer?.duration?.toLong()?.minus(state.mediaPlayerList[message.arg1]?.mediaPlayer?.currentPosition!!)
-                                        ?.let { it1 -> handler?.sendMessageDelayed(newMessage, it1) }
-
                                 }
                             }
 
@@ -120,50 +114,6 @@ class MainActivity : AppCompatActivity() {
                             STOP_MEDIA -> {
                                 Log.i("LOOPERTHREADCALLBACK", "Stop media")
                                 if(state.mediaPlayerList[message.arg1]?.mediaPlayer?.isPlaying!!) {
-                                    state.mediaPlayerList[message.arg1]?.isStopping = true
-
-                                    val newMessage = Message()
-                                    newMessage.arg1 = message.arg1
-                                    newMessage.arg2 = MainActivity.LooperThread.UPDATE_VOLUME_UNTIL_STOP
-                                    handler?.sendMessageDelayed(newMessage, 100)
-                                }
-                            }
-
-                            UPDATE_VOLUME -> {
-                                Log.i("LOOPERTHREADCALLBACK", "Update volume")
-                                if(state.mediaPlayerList[message.arg1]?.mediaPlayer?.isPlaying!! && !state.mediaPlayerList[message.arg1]?.isStopping!!) {
-                                    if(state.mediaPlayerList[message.arg1]?.mediaPlayer?.currentPosition?.toFloat()!! < state.mediaPlayerList[message.arg1]?.beginFadeDuration!! * 1000) {
-                                        Log.i("LOOPERTHREADCALLBACK", "Increase volume")
-                                        state.mediaPlayerList[message.arg1]?.mediaVolume = (state.mediaPlayerList[message.arg1]?.mediaPlayer?.currentPosition?.toFloat()!! / (state.mediaPlayerList[message.arg1]?.beginFadeDuration!! * 1000)) * state.mediaPlayerList[message.arg1]?.maxVolume!!
-                                        state.mediaPlayerList[message.arg1]?.mediaPlayer?.setVolume(state.mediaPlayerList[message.arg1]?.mediaVolume!!, state.mediaPlayerList[message.arg1]?.mediaVolume!!)
-                                        Log.i("LOOPERTHREADCALLBACK", "New volume: ${state.mediaPlayerList[message.arg1]?.mediaVolume}")
-
-                                        val newMessage = Message()
-                                        newMessage.arg1 = message.arg1
-                                        newMessage.arg2 = MainActivity.LooperThread.UPDATE_VOLUME
-                                        handler?.sendMessageDelayed(newMessage, 100)
-                                    } else if(state.mediaPlayerList[message.arg1]?.mediaPlayer?.currentPosition?.toFloat()!! >= state.mediaPlayerList[message.arg1]?.mediaPlayer?.duration!! - (state.mediaPlayerList[message.arg1]?.endFadeDuration!! * 1000)) {
-                                        Log.i("LOOPERTHREADCALLBACK", "Decrease volume")
-                                        state.mediaPlayerList[message.arg1]?.mediaVolume = ((state.mediaPlayerList[message.arg1]?.mediaPlayer?.duration!! - state.mediaPlayerList[message.arg1]?.mediaPlayer?.currentPosition?.toFloat()!!) / (state.mediaPlayerList[message.arg1]?.endFadeDuration!! * 1000)) * state.mediaPlayerList[message.arg1]?.maxVolume!!
-                                        state.mediaPlayerList[message.arg1]?.mediaPlayer?.setVolume(state.mediaPlayerList[message.arg1]?.mediaVolume!!, state.mediaPlayerList[message.arg1]?.mediaVolume!!)
-                                        Log.i("LOOPERTHREADCALLBACK", "New volume: ${state.mediaPlayerList[message.arg1]?.mediaVolume}")
-
-                                        val newMessage = Message()
-                                        newMessage.arg1 = message.arg1
-                                        newMessage.arg2 = MainActivity.LooperThread.UPDATE_VOLUME
-                                        handler?.sendMessageDelayed(newMessage, 100)
-                                    } else {
-                                        Log.i("LOOPERTHREADCALLBACK", "Max volume")
-                                        state.mediaPlayerList[message.arg1]?.mediaVolume = state.mediaPlayerList[message.arg1]?.maxVolume!!
-                                        state.mediaPlayerList[message.arg1]?.mediaPlayer?.setVolume(state.mediaPlayerList[message.arg1]?.mediaVolume!!, state.mediaPlayerList[message.arg1]?.mediaVolume!!)
-                                    }
-                                }
-                            }
-
-                            UPDATE_VOLUME_UNTIL_STOP -> {
-                                Log.i("LOOPERTHREADCALLBACK", "Update volume for stop")
-                                if(state.mediaPlayerList[message.arg1]?.mediaPlayer?.isPlaying!!) {
-                                    Log.i("LOOPERTHREADCALLBACK", "Is playing")
                                     if(state.mediaPlayerList[message.arg1]?.endFadeDuration == 0) {
                                         Log.i("LOOPERTHREADCALLBACK", "Stop directly")
                                         state.mediaPlayerList[message.arg1]?.mediaVolume = 0.0F
@@ -171,22 +121,16 @@ class MainActivity : AppCompatActivity() {
                                         state.mediaPlayerList[message.arg1]?.mediaPlayer?.stop()
                                         state.mediaPlayerList[message.arg1]?.mediaPlayer?.prepare()
                                     } else {
-                                        state.mediaPlayerList[message.arg1]?.mediaVolume = (state.mediaPlayerList[message.arg1]?.mediaVolume!! - (1.0F / (state.mediaPlayerList[message.arg1]?.endFadeDuration!! * 100 * 0.1F))) * state.mediaPlayerList[message.arg1]?.maxVolume!!
-                                        Log.i("LOOPERTHREADCALLBACK", "Update volume to ${state.mediaPlayerList[message.arg1]?.mediaVolume}")
+                                        state.mediaPlayerList[message.arg1]?.isStopping = true
+                                        state.mediaPlayerList[message.arg1]?.volumeStop =
+                                            state.mediaPlayerList[message.arg1]?.mediaVolume!!
+                                        state.mediaPlayerList[message.arg1]?.timeStop =
+                                            state.mediaPlayerList[message.arg1]?.mediaPlayer?.currentPosition?.toFloat()!!
 
-                                        if(state.mediaPlayerList[message.arg1]?.mediaVolume!! > 0.0F) {
-                                            state.mediaPlayerList[message.arg1]?.mediaPlayer?.setVolume(state.mediaPlayerList[message.arg1]?.mediaVolume!!, state.mediaPlayerList[message.arg1]?.mediaVolume!!)
-
-                                            val newMessage = Message()
-                                            newMessage.arg1 = message.arg1
-                                            newMessage.arg2 = MainActivity.LooperThread.UPDATE_VOLUME_UNTIL_STOP
-                                            handler?.sendMessageDelayed(newMessage, 100)
-                                        } else {
-                                            state.mediaPlayerList[message.arg1]?.mediaVolume = 0.0F
-                                            state.mediaPlayerList[message.arg1]?.isStopping = false
-                                            state.mediaPlayerList[message.arg1]?.mediaPlayer?.stop()
-                                            state.mediaPlayerList[message.arg1]?.mediaPlayer?.prepare()
-                                        }
+                                        val newMessage = Message()
+                                        newMessage.arg1 = message.arg1
+                                        newMessage.arg2 = NEW_UPDATE_VOLUME
+                                        handler?.sendMessageDelayed(newMessage, 100)
                                     }
                                 }
                             }
@@ -195,6 +139,38 @@ class MainActivity : AppCompatActivity() {
                                 Log.i("LOOPERTHREADCALLBACK", "Delete media")
                                 state.mediaPlayerList[message.arg1]?.mediaPlayer?.release()
                                 state.mediaPlayerList.remove(message.arg1);
+                            }
+
+                            NEW_UPDATE_VOLUME -> {
+                                if(state.mediaPlayerList[message.arg1]?.mediaPlayer?.isPlaying!!) {
+                                    if(state.mediaPlayerList[message.arg1]?.isStopping!!) {
+                                        Log.i("LOOPERTHREADCALLBACK", "VolumeStop : ${state.mediaPlayerList[message.arg1]?.volumeStop}")
+                                        Log.i("LOOPERTHREADCALLBACK", "TimeStop : ${state.mediaPlayerList[message.arg1]?.timeStop}")
+                                        Log.i("LOOPERTHREADCALLBACK", "Current Position : ${state.mediaPlayerList[message.arg1]?.mediaPlayer?.currentPosition?.toFloat()}")
+                                        Log.i("LOOPERTHREADCALLBACK", "Fade Out : ${state.mediaPlayerList[message.arg1]?.endFadeDuration}")
+
+                                        state.mediaPlayerList[message.arg1]?.mediaVolume = state.mediaPlayerList[message.arg1]?.volumeStop!! - (state.mediaPlayerList[message.arg1]?.volumeStop!! * (state.mediaPlayerList[message.arg1]?.mediaPlayer?.currentPosition?.toFloat()!! - state.mediaPlayerList[message.arg1]?.timeStop!!) / (state.mediaPlayerList[message.arg1]?.endFadeDuration!! * 1000))
+                                        state.mediaPlayerList[message.arg1]?.mediaPlayer?.setVolume(state.mediaPlayerList[message.arg1]?.mediaVolume!!, state.mediaPlayerList[message.arg1]?.mediaVolume!!)
+                                    } else {
+                                        state.mediaPlayerList[message.arg1]?.mediaVolume = (state.mediaPlayerList[message.arg1]?.mediaPlayer?.currentPosition?.toFloat()!! / (state.mediaPlayerList[message.arg1]?.beginFadeDuration!! * 1000)) * state.mediaPlayerList[message.arg1]?.maxVolume!!
+                                        if(state.mediaPlayerList[message.arg1]?.mediaVolume!! > 1.0F)
+                                            state.mediaPlayerList[message.arg1]?.mediaVolume = 1.0F
+                                        state.mediaPlayerList[message.arg1]?.mediaPlayer?.setVolume(state.mediaPlayerList[message.arg1]?.mediaVolume!!, state.mediaPlayerList[message.arg1]?.mediaVolume!!)
+                                    }
+
+                                    Log.i("LOOPERTHREADCALLBACK", "Update volume to ${state.mediaPlayerList[message.arg1]?.mediaVolume}")
+
+                                    if(state.mediaPlayerList[message.arg1]?.mediaVolume!! > 0.0F) {
+                                        val newMessage = Message()
+                                        newMessage.arg1 = message.arg1
+                                        newMessage.arg2 = NEW_UPDATE_VOLUME
+                                        handler?.sendMessageDelayed(newMessage, 100)
+                                    } else {
+                                        state.mediaPlayerList[message.arg1]?.isStopping = false
+                                        state.mediaPlayerList[message.arg1]?.mediaPlayer?.stop()
+                                        state.mediaPlayerList[message.arg1]?.mediaPlayer?.prepare()
+                                    }
+                                }
                             }
                         }
                     }
@@ -352,7 +328,7 @@ class MainActivity : AppCompatActivity() {
 
             val message = Message()
             message.arg1 = id
-            message.arg2 = MainActivity.LooperThread.UPDATE_VOLUME
+            message.arg2 = MainActivity.LooperThread.NEW_UPDATE_VOLUME
             looperThread?.handler?.sendMessage(message)
         }
         soundLayout.addView(volumeSlider)
@@ -451,25 +427,8 @@ class MainActivity : AppCompatActivity() {
             val tmpBuffer = ByteArray(fis?.available()!!)
             fis.read(tmpBuffer)
             tmpFos.write(tmpBuffer)
-            //tmpFos.close()
-            //fis?.close()
-
-            /*val zip = ZipFile(tmpZip)
-
-            // Extract zip
-            for (entry in zip.entries()) {
-                val zfis = zip.getInputStream(entry)
-                val bis = BufferedInputStream(zfis)
-                val zis = ZipInputStream(bis)
-                val buffer = ByteArray(entry.size.toInt())
-                val fos = FileOutputStream(dataFolder.path + "/" + entry.name)
-                val n = zis.read(buffer)
-                fos.write(buffer)
-                fos.close()
-                zis.close()
-                bis.close()
-                zfis.close()
-            }*/
+            tmpFos.close()
+            fis?.close()
 
             val zfis = FileInputStream(dataFolder.path + "/project.zip")
             val bis = BufferedInputStream(zfis)
