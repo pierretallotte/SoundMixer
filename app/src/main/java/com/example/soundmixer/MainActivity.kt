@@ -98,6 +98,8 @@ class MainActivity : AppCompatActivity() {
                                     state.mediaPlayerList[message.arg1]?.mediaPlayer?.start()
                                     state.mediaPlayerList[message.arg1]?.isStopping = false
 
+                                    Log.i("LOOPERTHREADCALLBACK", "Current position: ${state.mediaPlayerList[message.arg1]?.mediaPlayer?.currentPosition!!}")
+
                                     val newMessage = Message()
                                     newMessage.arg1 = message.arg1
                                     newMessage.arg2 = NEW_UPDATE_VOLUME
@@ -142,33 +144,49 @@ class MainActivity : AppCompatActivity() {
                             }
 
                             NEW_UPDATE_VOLUME -> {
+                                Log.i("LOOPERTHREADCALLBACK", "Update volume")
                                 if(state.mediaPlayerList[message.arg1]?.mediaPlayer?.isPlaying!!) {
-                                    if(state.mediaPlayerList[message.arg1]?.isStopping!!) {
-                                        Log.i("LOOPERTHREADCALLBACK", "VolumeStop : ${state.mediaPlayerList[message.arg1]?.volumeStop}")
-                                        Log.i("LOOPERTHREADCALLBACK", "TimeStop : ${state.mediaPlayerList[message.arg1]?.timeStop}")
-                                        Log.i("LOOPERTHREADCALLBACK", "Current Position : ${state.mediaPlayerList[message.arg1]?.mediaPlayer?.currentPosition?.toFloat()}")
-                                        Log.i("LOOPERTHREADCALLBACK", "Fade Out : ${state.mediaPlayerList[message.arg1]?.endFadeDuration}")
+                                    Log.i("LOOPERTHREADCALLBACK", "Is playing")
+                                    Log.i("LOOPERTHREADCALLBACK", "Current position: ${state.mediaPlayerList[message.arg1]?.mediaPlayer?.currentPosition!!}")
+                                    if(!state.mediaPlayerList[message.arg1]?.isStopping!! && state.mediaPlayerList[message.arg1]?.mediaPlayer?.currentPosition!! > state.mediaPlayerList[message.arg1]?.mediaPlayer?.duration!! - state.mediaPlayerList[message.arg1]?.endFadeDuration!! * 1000) {
+                                        Log.i("LOOPERTHREADCALLBACK", "End of the sound")
+                                        state.mediaPlayerList[message.arg1]?.isStopping = true
+                                        state.mediaPlayerList[message.arg1]?.volumeStop =
+                                            state.mediaPlayerList[message.arg1]?.mediaVolume!!
+                                        state.mediaPlayerList[message.arg1]?.timeStop =
+                                            state.mediaPlayerList[message.arg1]?.mediaPlayer?.currentPosition?.toFloat()!!
+                                    }
 
+                                    if(state.mediaPlayerList[message.arg1]?.isStopping!!) {
+                                        Log.i("LOOPERTHREADCALLBACK", "Is stopping")
                                         state.mediaPlayerList[message.arg1]?.mediaVolume = state.mediaPlayerList[message.arg1]?.volumeStop!! - (state.mediaPlayerList[message.arg1]?.volumeStop!! * (state.mediaPlayerList[message.arg1]?.mediaPlayer?.currentPosition?.toFloat()!! - state.mediaPlayerList[message.arg1]?.timeStop!!) / (state.mediaPlayerList[message.arg1]?.endFadeDuration!! * 1000))
                                         state.mediaPlayerList[message.arg1]?.mediaPlayer?.setVolume(state.mediaPlayerList[message.arg1]?.mediaVolume!!, state.mediaPlayerList[message.arg1]?.mediaVolume!!)
                                     } else {
-                                        state.mediaPlayerList[message.arg1]?.mediaVolume = (state.mediaPlayerList[message.arg1]?.mediaPlayer?.currentPosition?.toFloat()!! / (state.mediaPlayerList[message.arg1]?.beginFadeDuration!! * 1000)) * state.mediaPlayerList[message.arg1]?.maxVolume!!
-                                        if(state.mediaPlayerList[message.arg1]?.mediaVolume!! > 1.0F)
-                                            state.mediaPlayerList[message.arg1]?.mediaVolume = 1.0F
+                                        Log.i("LOOPERTHREADCALLBACK", "Not stopping")
+                                        if(state.mediaPlayerList[message.arg1]?.mediaPlayer?.currentPosition!! < state.mediaPlayerList[message.arg1]?.beginFadeDuration!! * 1000) {
+                                            Log.i("LOOPERTHREADCALLBACK", "Fade in")
+                                            state.mediaPlayerList[message.arg1]?.mediaVolume = (state.mediaPlayerList[message.arg1]?.mediaPlayer?.currentPosition?.toFloat()!! / (state.mediaPlayerList[message.arg1]?.beginFadeDuration!! * 1000)) * state.mediaPlayerList[message.arg1]?.maxVolume!!
+                                        } else {
+                                            Log.i("LOOPERTHREADCALLBACK", "Max volume")
+                                            state.mediaPlayerList[message.arg1]?.mediaVolume = state.mediaPlayerList[message.arg1]?.maxVolume!!
+                                        }
                                         state.mediaPlayerList[message.arg1]?.mediaPlayer?.setVolume(state.mediaPlayerList[message.arg1]?.mediaVolume!!, state.mediaPlayerList[message.arg1]?.mediaVolume!!)
                                     }
 
                                     Log.i("LOOPERTHREADCALLBACK", "Update volume to ${state.mediaPlayerList[message.arg1]?.mediaVolume}")
 
-                                    if(state.mediaPlayerList[message.arg1]?.mediaVolume!! > 0.0F) {
+                                    if(state.mediaPlayerList[message.arg1]?.mediaVolume!! >= 0.0F) {
+                                        Log.i("LOOPERTHREADCALLBACK", "Continue to update")
                                         val newMessage = Message()
                                         newMessage.arg1 = message.arg1
                                         newMessage.arg2 = NEW_UPDATE_VOLUME
                                         handler?.sendMessageDelayed(newMessage, 100)
                                     } else {
+                                        Log.i("LOOPERTHREADCALLBACK", "Stop the sound")
                                         state.mediaPlayerList[message.arg1]?.isStopping = false
                                         state.mediaPlayerList[message.arg1]?.mediaPlayer?.stop()
                                         state.mediaPlayerList[message.arg1]?.mediaPlayer?.prepare()
+                                        state.mediaPlayerList[message.arg1]?.mediaPlayer?.seekTo(0)
                                     }
                                 }
                             }
@@ -412,12 +430,10 @@ class MainActivity : AppCompatActivity() {
     private val loadProjectLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         if (result.resultCode == Activity.RESULT_OK) {
 
+            val proc = Runtime.getRuntime().exec("rm -rf " + filesDir.path)
+            proc.waitFor()
+
             var dataFolder = File(filesDir.path + "/" + UUID.randomUUID().toString())
-
-            while (dataFolder.isDirectory) {
-                dataFolder = File(filesDir.path + "/" + UUID.randomUUID().toString())
-            }
-
             dataFolder.mkdir()
 
             // Write URI to File
