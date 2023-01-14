@@ -208,7 +208,7 @@ class MainActivity : AppCompatActivity() {
             val id = addPlayingButtons(uri!!)
             val message = Message()
             message.arg1 = id
-            message.arg2 = MainActivity.LooperThread.CREATE_MEDIA
+            message.arg2 = LooperThread.CREATE_MEDIA
             message.obj = uri
             looperThread?.handler?.sendMessage(message)
         }
@@ -224,7 +224,7 @@ class MainActivity : AppCompatActivity() {
             id = View.generateViewId()
             name = DocumentFile.fromSingleUri(this, param as Uri)?.name
         } else if(param is JSONObject) {
-            id = param.getInt("id")
+            id = View.generateViewId()
             name = param.getString("name")
         }
 
@@ -501,7 +501,7 @@ class MainActivity : AppCompatActivity() {
                     val id = addPlayingButtons(obj)
                     val message = Message()
                     message.arg1 = id
-                    message.arg2 = MainActivity.LooperThread.CREATE_MEDIA
+                    message.arg2 = LooperThread.CREATE_MEDIA
                     message.obj = Uri.fromFile(File(dataFolder.path + "/" + obj.getString("id") + "_" + obj.getString("name")))
                     looperThread?.handler?.sendMessage(message)
 
@@ -509,6 +509,7 @@ class MainActivity : AppCompatActivity() {
                         Thread.sleep(10)
                     }
 
+                    looperThread?.state?.mediaPlayerList!![id]?.name = obj.getString("name")
                     looperThread?.state?.mediaPlayerList!![id]?.maxVolume = obj.getDouble("maxVolume").toFloat()
                     looperThread?.state?.mediaPlayerList!![id]?.beginFadeDuration = obj.getInt("beginFadeDuration")
                     looperThread?.state?.mediaPlayerList!![id]?.endFadeDuration = obj.getInt("endFadeDuration")
