@@ -30,6 +30,8 @@ import java.util.zip.ZipFile
 import java.util.zip.ZipInputStream
 import java.util.zip.ZipOutputStream
 import kotlin.collections.LinkedHashMap
+import kotlin.math.log10
+import kotlin.math.pow
 
 
 class MainActivity : AppCompatActivity() {
@@ -340,9 +342,11 @@ class MainActivity : AppCompatActivity() {
             LinearLayout.LayoutParams.WRAP_CONTENT)
         volumeSlider.valueFrom = 0.0F
         volumeSlider.valueTo = 1.0F
-        volumeSlider.value = if (param is JSONObject) param.getDouble("maxVolume").toFloat() else 1.0F
+        volumeSlider.value = if (param is JSONObject) {
+            log10(9*param.getDouble("maxVolume").toFloat()+1)
+        } else 1.0F
         volumeSlider.addOnChangeListener { _, value, _ ->
-            looperThread?.state?.mediaPlayerList?.get(id)?.maxVolume = value
+            looperThread?.state?.mediaPlayerList?.get(id)?.maxVolume = (10.0f.pow(value) - 1) / 9
             Log.i("FILERETURN", "Change volume to $value")
 
             val message = Message()
