@@ -49,7 +49,8 @@ class MainActivity : AppCompatActivity() {
 
     class ActivityState : ViewModel() {
         var mediaPlayerList = LinkedHashMap<Int, MediaPlayerProxy>()
-        var toogleSettings = true
+        var toogleFade = true
+        var toogleVolume = true
     }
 
     class LooperThread : Thread() {
@@ -356,19 +357,26 @@ class MainActivity : AppCompatActivity() {
         globalLayout.addView(paramLayout)
         globalLayout.addView(soundLayout)
 
-        paramLayout.visibility = if(findViewById<Switch>(R.id.showSettings).isChecked) View.VISIBLE else View.GONE
-        soundLayout.visibility = if(findViewById<Switch>(R.id.showSettings).isChecked) View.VISIBLE else View.GONE
+        paramLayout.visibility = if(findViewById<Switch>(R.id.showFade).isChecked) View.VISIBLE else View.GONE
+        soundLayout.visibility = if(findViewById<Switch>(R.id.showVolume).isChecked) View.VISIBLE else View.GONE
 
         findViewById<LinearLayout>(R.id.buttonLayout).addView(globalLayout)
 
         return globalLayout.id
     }
 
-    private fun toggleSettings(on: Boolean) {
+    private fun toggleFade(on: Boolean) {
         val buttonLayout: LinearLayout = findViewById(R.id.buttonLayout)
 
         buttonLayout.children.forEach {
             (it as LinearLayout).children.elementAt(2).visibility = if(on) View.VISIBLE else View.GONE
+        }
+    }
+
+    private fun toggleVolume(on: Boolean) {
+        val buttonLayout: LinearLayout = findViewById(R.id.buttonLayout)
+
+        buttonLayout.children.forEach {
             (it as LinearLayout).children.elementAt(3).visibility = if(on) View.VISIBLE else View.GONE
         }
     }
@@ -398,11 +406,18 @@ class MainActivity : AppCompatActivity() {
         val loadProjectButton: Button = findViewById(R.id.loadProject)
         loadProjectButton.setOnClickListener { loadProject() }
 
-        val showSettingsSwitch: Switch = findViewById(R.id.showSettings)
-        showSettingsSwitch.isChecked = state.toogleSettings
-        showSettingsSwitch.setOnCheckedChangeListener { _, b ->
-            showSettingsSwitch.isChecked = b
-            toggleSettings(b);
+        val showFadeSwitch: Switch = findViewById(R.id.showFade)
+        showFadeSwitch.isChecked = state.toogleFade
+        showFadeSwitch.setOnCheckedChangeListener { _, b ->
+            showFadeSwitch.isChecked = b
+            toggleFade(b);
+        }
+
+        val showVolumeSwitch: Switch = findViewById(R.id.showVolume)
+        showVolumeSwitch.isChecked = state.toogleVolume
+        showVolumeSwitch.setOnCheckedChangeListener { _, b ->
+            showVolumeSwitch.isChecked = b
+            toggleVolume(b);
         }
 
         state.mediaPlayerList.forEach { (id, mediaPlayerProxy) ->

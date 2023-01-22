@@ -35,16 +35,31 @@
                 android:text="@string/add_sound" />
 
             <Switch
-                android:id="@+id/showSettings"
+                android:id="@+id/showFade"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Show settings" />
+                android:text="Show fade settings" />
+
+            <Switch
+                android:id="@+id/showVolume"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Show volume slider" />
 
             <LinearLayout
                 android:id="@+id/buttonLayout"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="vertical"></LinearLayout>
+                android:orientation="vertical">
+
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/textView"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Version 0.0.3" />
+
         </LinearLayout>
     </ScrollView>
 
